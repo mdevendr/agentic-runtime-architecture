@@ -1,6 +1,6 @@
 # Direct Tools Architecture: AI Agent Implementation
 
-This demonstrates a Direct Tools architecture for AI agents, where tools are local Python functions executed in-process by the agent framework. The implementation uses AWS Bedrock for LLM interactions and Pydantic for tool input validation.
+This implementation demonstrates a Direct Tools architecture for AI agents, where tools are local Python functions executed in-process by the agent framework. Bedrock receives the tool schema and uses it to guide tool selection and argument generation. However, hard enforcement of the tool contract is performed by the local Python runtime using Pydantic validation before the handler executes.
 
 ## Code
 
