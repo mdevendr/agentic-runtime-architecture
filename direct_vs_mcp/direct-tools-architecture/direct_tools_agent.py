@@ -25,10 +25,6 @@ logging.basicConfig(
 )
 
 REGION = os.getenv("AWS_REGION", "eu-west-2")
-MODEL_ID = os.getenv("BEDROCK_MODEL_ID")
-
-if not MODEL_ID:
-    raise RuntimeError("Missing BEDROCK_MODEL_ID")
 
 
 # -------------------------
@@ -165,6 +161,10 @@ def execute_tool(tool_name: str, tool_input: dict[str, Any]) -> tuple[str, dict[
 
 
 def run_agent(user_prompt: str) -> str:
+    model_id = os.getenv("BEDROCK_MODEL_ID")
+    if not model_id:
+        raise RuntimeError("Missing BEDROCK_MODEL_ID")
+
     client = boto3.client("bedrock-runtime", region_name=REGION)
 
     messages = [
@@ -175,7 +175,7 @@ def run_agent(user_prompt: str) -> str:
     ]
 
     response = client.converse(
-        modelId=MODEL_ID,
+        modelId=model_id,
         messages=messages,
         toolConfig=bedrock_tool_config(),
     )
@@ -214,7 +214,7 @@ def run_agent(user_prompt: str) -> str:
         )
 
         response = client.converse(
-            modelId=MODEL_ID,
+            modelId=model_id,
             messages=messages,
             toolConfig=bedrock_tool_config(),
         )
