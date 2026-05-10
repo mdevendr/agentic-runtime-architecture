@@ -230,13 +230,20 @@ async def run_agent(mode: str) -> None:
                 try:
                     result = await owner.session.call_tool(tool_name, tool_input)
 
-                    logging.info(
-                        "[%s MCP → AGENT] JSON-RPC response: tools/call result=%s",
-                        owner.label,
-                        result,
-                    )
-
                     status = "error" if result.isError else "success"
+                    if result.isError:
+                        logging.error(
+                            "[%s MCP → AGENT] JSON-RPC response: tools/call error=%s",
+                            owner.label,
+                            result,
+                        )
+                    else:
+                        logging.info(
+                            "[%s MCP → AGENT] JSON-RPC response: tools/call result=%s",
+                            owner.label,
+                            result,
+                        )
+
                     tool_results.append(
                         {
                             "toolResult": {

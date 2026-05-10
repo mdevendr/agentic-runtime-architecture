@@ -22,6 +22,10 @@ This implementation demonstrates composed MCP execution through orchestration of
 
 This is not a separate execution pattern from MCP. It is MCP orchestration across multiple execution boundaries.
 
+## Architecture Diagram
+
+![MCP tooling architecture](../architechture/MCPTooling.png)
+
 ## Code
 
 Files:
@@ -404,4 +408,3 @@ Not proven:
 - Identity enforcement or authorization.
 - Independent horizontal scaling beyond the local stdio process model.
 - Production tracing, metrics, or audit logging.
-
