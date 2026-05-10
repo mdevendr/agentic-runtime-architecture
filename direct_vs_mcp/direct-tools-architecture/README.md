@@ -2,6 +2,42 @@
 
 This implementation demonstrates a Direct Tools architecture for AI agents, where tools are local Python functions executed in-process by the agent framework. Bedrock receives the tool schema and uses it to guide tool selection and argument generation. However, hard enforcement of the tool contract is performed by the local Python runtime using Pydantic validation before the handler executes.
 
+## Architecture Diagram
+
+```mermaid
+flowchart LR
+    User["User prompt"] --> AgentLoop
+
+    subgraph AgentProcess["Agent process: direct tools execution boundary"]
+        AgentLoop["Agent loop<br/>direct_tools_agent.py"]
+        Registry["Local tool registry<br/>TOOLS dict"]
+        Schemas["Pydantic schemas<br/>OrderTotalInput<br/>RefundEligibilityInput"]
+        Executor["execute_tool()<br/>validation + dispatch"]
+        OrderTool["Local Python function<br/>calculate_order_total"]
+        RefundTool["Local Python function<br/>check_refund_eligibility"]
+
+        AgentLoop --> Registry
+        Registry --> Schemas
+        AgentLoop --> Executor
+        Executor --> Schemas
+        Executor --> OrderTool
+        Executor --> RefundTool
+        OrderTool --> Executor
+        RefundTool --> Executor
+        Executor --> AgentLoop
+    end
+
+    AgentLoop -->|"tool schemas + user prompt"| LLM["LLM via Bedrock Converse"]
+    LLM -->|"toolUse: name + JSON args"| AgentLoop
+    AgentLoop -->|"toolResult"| LLM
+    LLM --> Final["Final agent response"]
+
+    classDef boundary fill:#f7f7f7,stroke:#333,stroke-width:2px;
+    class AgentProcess boundary;
+```
+
+Key point: only the LLM call leaves the agent process. Tool validation and execution happen inside the same Python process and memory boundary as the agent loop.
+
 ## Code
 
 The Python implementation is in `direct_tools_agent.py`. It defines two local Python tools (`calculate_order_total` and `check_refund_eligibility`) with Pydantic schemas for input validation, registers them in a tool registry, and includes test prompts for success and failure cases. Logging is included to show tool selection, input validation, execution, and results.
