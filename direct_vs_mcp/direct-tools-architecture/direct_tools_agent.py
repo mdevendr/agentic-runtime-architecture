@@ -110,8 +110,8 @@ TOOLS: dict[str, dict[str, Any]] = {
 }
 
 
-def bedrock_tool_config() -> dict[str, Any]:
-    return {
+def bedrock_tool_config(tool_choice: str | None = None) -> dict[str, Any]:
+    config = {
         "tools": [
             {
                 "toolSpec": {
@@ -125,6 +125,11 @@ def bedrock_tool_config() -> dict[str, Any]:
             for name, spec in TOOLS.items()
         ]
     }
+
+    if tool_choice:
+        config["toolChoice"] = {"tool": {"name": tool_choice}}
+
+    return config
 
 
 def execute_tool(tool_name: str, tool_input: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -146,10 +151,26 @@ def execute_tool(tool_name: str, tool_input: dict[str, Any]) -> tuple[str, dict[
         return "success", result
 
     except ValidationError as exc:
-        logging.exception("Tool input validation failed")
+        first_error = exc.errors()[0]
+        error_location = ".".join(str(part) for part in first_error["loc"])
+        error_message = first_error["msg"]
+
+        if error_location == "sku" and "sku must start with" in error_message:
+            logging.error("Validation failed: Invalid SKU format")
+        else:
+            logging.error("Validation failed: %s", error_message)
+
         return "error", {
             "error": "ValidationError",
-            "details": exc.errors(),
+            "details": [
+                {
+                    "field": ".".join(str(part) for part in error["loc"]),
+                    "message": error["msg"],
+                    "type": error["type"],
+                    "input": error.get("input"),
+                }
+                for error in exc.errors()
+            ],
         }
 
     except Exception as exc:
@@ -160,7 +181,7 @@ def execute_tool(tool_name: str, tool_input: dict[str, Any]) -> tuple[str, dict[
         }
 
 
-def run_agent(user_prompt: str) -> str:
+def run_agent(user_prompt: str, initial_tool_choice: str | None = None) -> str:
     model_id = os.getenv("BEDROCK_MODEL_ID")
     if not model_id:
         raise RuntimeError("Missing BEDROCK_MODEL_ID")
@@ -177,7 +198,7 @@ def run_agent(user_prompt: str) -> str:
     response = client.converse(
         modelId=model_id,
         messages=messages,
-        toolConfig=bedrock_tool_config(),
+        toolConfig=bedrock_tool_config(initial_tool_choice),
     )
 
     messages.append(response["output"]["message"])
@@ -238,15 +259,17 @@ if __name__ == "__main__":
             "Quantity is 3 and unit price is 12.50. "
             "Use the available tool."
         )
+        initial_tool_choice = "calculate_order_total"
     elif mode == "failure":
         prompt = (
-            "Calculate the total price for item BOOK-001. "
-            "Quantity is 0 and unit price is -12.50. "
+            "Calculate the total price for BOOK-001. "
+            "Quantity is 3 and unit price is 12.50. "
             "Use the available tool."
         )
+        initial_tool_choice = "calculate_order_total"
     else:
         raise ValueError("Use either: success or failure")
 
-    answer = run_agent(prompt)
+    answer = run_agent(prompt, initial_tool_choice)
     print("\nAGENT RESPONSE:")
     print(answer)

@@ -4,37 +4,7 @@ This implementation demonstrates a Direct Tools architecture for AI agents, wher
 
 ## Architecture Diagram
 
-```mermaid
-flowchart LR
-    User["User prompt"] --> AgentLoop
-
-    subgraph AgentProcess["Agent process: direct tools execution boundary"]
-        AgentLoop["Agent loop<br/>direct_tools_agent.py"]
-        Registry["Local tool registry<br/>TOOLS dict"]
-        Schemas["Pydantic schemas<br/>OrderTotalInput<br/>RefundEligibilityInput"]
-        Executor["execute_tool()<br/>validation + dispatch"]
-        OrderTool["Local Python function<br/>calculate_order_total"]
-        RefundTool["Local Python function<br/>check_refund_eligibility"]
-
-        AgentLoop --> Registry
-        Registry --> Schemas
-        AgentLoop --> Executor
-        Executor --> Schemas
-        Executor --> OrderTool
-        Executor --> RefundTool
-        OrderTool --> Executor
-        RefundTool --> Executor
-        Executor --> AgentLoop
-    end
-
-    AgentLoop -->|"tool schemas + user prompt"| LLM["LLM via Bedrock Converse"]
-    LLM -->|"toolUse: name + JSON args"| AgentLoop
-    AgentLoop -->|"toolResult"| LLM
-    LLM --> Final["Final agent response"]
-
-    classDef boundary fill:#f7f7f7,stroke:#333,stroke-width:2px;
-    class AgentProcess boundary;
-```
+![Direct Tools architecture](../architechture/DirectTooling.png)
 
 Key point: only the LLM call leaves the agent process. Tool validation and execution happen inside the same Python process and memory boundary as the agent loop.
 
@@ -65,12 +35,12 @@ Since the code requires AWS Bedrock (not available in this environment), outputs
 - **Expected Agent Response**: A natural language summary incorporating the tool result, e.g., "The total price for SKU-BOOK-001 with quantity 3 and unit price 12.50 is 45.0, including VAT."
 
 ### Failure Output (python direct_tools_agent.py failure)
-- **Prompt**: "Calculate the total price for item BOOK-001. Quantity is 0 and unit price is -12.50. Use the available tool."
+- **Prompt**: "Calculate the total price for BOOK-001. Quantity is 3 and unit price is 12.50. Use the available tool and let the tool validation determine whether the SKU is valid."
 - **Expected Logs**:
   - Tool selected by LLM: calculate_order_total
-  - Raw tool input: {"sku": "BOOK-001", "quantity": 0, "unit_price": -12.50} (assuming LLM hallucinates invalid inputs)
-  - Tool input validation failed (ValidationError details logged)
-- **Expected Agent Response**: Error message indicating validation failure, e.g., "I encountered an error: ValidationError - sku must start with 'SKU-', quantity must be >=1, unit_price must be >0."
+  - Raw tool input: {"sku": "BOOK-001", "quantity": 3, "unit_price": 12.50}
+  - Validation failed: Invalid SKU format
+- **Expected Agent Response**: Error message indicating validation failure, e.g., "The SKU is invalid because it must start with 'SKU-'."
 
 **Assumption**: The LLM correctly selects tools and provides inputs as per the prompt. In failure cases, invalid inputs trigger Pydantic ValidationError.
 
