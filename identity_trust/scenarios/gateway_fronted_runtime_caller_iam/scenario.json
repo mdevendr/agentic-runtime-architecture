@@ -1,0 +1,35 @@
+{
+  "name": "gateway_fronted_runtime_caller_iam",
+  "implemented": true,
+  "description": "Client invokes AgentCore Gateway, and Gateway invokes AgentCore Runtime target using caller IAM credentials.",
+  "sequence": "gateway-fronted-runtime-2",
+  "boundary": "client_to_gateway_to_runtime",
+  "identity": {
+    "type": "caller_iam_credentials",
+    "authentication_type": "gateway_inbound_iam_then_caller_iam_sigv4_to_runtime",
+    "credential_source": "original_caller_iam_identity"
+  },
+  "runtime": {
+    "target_type": "agentcore_runtime_target",
+    "arn_env": "AGENT_RUNTIME_ARN_IAM"
+  },
+  "setup": {
+    "script": "gateway_fronted_runtime/caller_iam_setup.py",
+    "requires": [
+      "AGENT_RUNTIME_ARN_IAM"
+    ]
+  },
+  "authorization": {
+    "gateway_inbound": "AWS_IAM by default",
+    "gateway_to_runtime": "Gateway signs Runtime target request with caller IAM credentials",
+    "runtime_authorizer": "Runtime IAM auth validates SigV4 and IAM policy bedrock-agentcore:InvokeAgentRuntime on the original caller"
+  },
+  "tests": [
+    {
+      "name": "caller_iam_invokes_runtime_target",
+      "mode": "manual",
+      "evidence": "Invoke the Gateway caller-IAM Runtime target with a caller identity allowed for both InvokeGateway and InvokeAgentRuntime."
+    }
+  ]
+}
+

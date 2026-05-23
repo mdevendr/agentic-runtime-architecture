@@ -1,0 +1,43 @@
+{
+  "name": "client_runtime_oauth_client",
+  "implemented": true,
+  "description": "Client uses OAuth client credentials, such as a Cognito machine app client, to invoke AgentCore Runtime with bearer-token auth.",
+  "sequence": 5,
+  "boundary": "client_to_runtime",
+  "identity": {
+    "type": "oauth_client_application_identity",
+    "authentication_type": "oauth2_client_credentials",
+    "credential_source": "cognito_user_pool_machine_client"
+  },
+  "runtime": {
+    "variant": "oauth-client",
+    "arn_env": "AGENT_RUNTIME_ARN_OAUTH_CLIENT",
+    "deploy_command": "python deploy_runtime.py --runtime-variant oauth-client"
+  },
+  "authorizer_environment": [
+    "AGENTCORE_OAUTH_CLIENT_DISCOVERY_URL",
+    "AGENTCORE_OAUTH_CLIENT_ALLOWED_CLIENTS",
+    "AGENTCORE_OAUTH_CLIENT_ALLOWED_AUDIENCES",
+    "AGENTCORE_OAUTH_CLIENT_ALLOWED_SCOPES"
+  ],
+  "authorization": {
+    "expected_controls": [
+      "client_id",
+      "client_secret",
+      "audience_or_resource",
+      "scope"
+    ]
+  },
+  "tests": [
+    {
+      "name": "runtime_authorized_with_cognito_client_credentials_token",
+      "mode": "oauth-client-authorized",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN_OAUTH_CLIENT"
+    },
+    {
+      "name": "runtime_denied_with_missing_bearer_token",
+      "mode": "oauth-client-missing-token",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN_OAUTH_CLIENT"
+    }
+  ]
+}

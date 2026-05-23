@@ -1,0 +1,30 @@
+{
+  "name": "client_runtime_identity_center",
+  "implemented": true,
+  "description": "Client uses IAM Identity Center federation, receives AWSReservedSSO role credentials, and invokes AgentCore Runtime with SigV4.",
+  "sequence": 3,
+  "boundary": "client_to_runtime",
+  "identity": {
+    "type": "iam_identity_center_federated_role",
+    "authentication_type": "aws_sigv4",
+    "credential_source": "aws_sso_session"
+  },
+  "authorization": {
+    "allowed_action": "bedrock-agentcore:InvokeAgentRuntime",
+    "resource_env": "AGENT_RUNTIME_ARN"
+  },
+  "tests": [
+    {
+      "name": "runtime_authorized_with_identity_center_allow_permission_set",
+      "mode": "runtime-authorized",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN",
+      "profile_env": "PROMPT4_IDENTITY_CENTER_ALLOW_PROFILE"
+    },
+    {
+      "name": "runtime_denied_with_identity_center_deny_permission_set",
+      "mode": "runtime-unauthorized",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN",
+      "profile_env": "PROMPT4_IDENTITY_CENTER_DENY_PROFILE"
+    }
+  ]
+}

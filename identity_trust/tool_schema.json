@@ -1,0 +1,67 @@
+[
+  {
+    "name": "calculate_order_total",
+    "description": "Calculate order subtotal, VAT, and total for a SKU.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "sku": {
+          "type": "string",
+          "description": "Product SKU. Must start with SKU-."
+        },
+        "quantity": {
+          "type": "integer",
+          "description": "Quantity to order. Must be at least 1."
+        },
+        "unit_price": {
+          "type": "number",
+          "description": "Unit price. Must be greater than 0."
+        }
+      },
+      "required": ["sku", "quantity", "unit_price"]
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "sku": {"type": "string"},
+        "quantity": {"type": "integer"},
+        "unit_price": {"type": "number"},
+        "subtotal": {"type": "number"},
+        "vat": {"type": "number"},
+        "total": {"type": "number"}
+      },
+      "required": ["sku", "quantity", "unit_price", "subtotal", "vat", "total"]
+    }
+  },
+  {
+    "name": "check_refund_eligibility",
+    "description": "Check whether an order is eligible for refund.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "description": "Order id. Must start with ORD-."
+        },
+        "days_since_purchase": {
+          "type": "integer",
+          "description": "Number of days since purchase. Must be non-negative."
+        },
+        "item_opened": {
+          "type": "boolean",
+          "description": "Whether the item has been opened."
+        }
+      },
+      "required": ["order_id", "days_since_purchase", "item_opened"]
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "order_id": {"type": "string"},
+        "eligible": {"type": "boolean"},
+        "reason": {"type": "string"}
+      },
+      "required": ["order_id", "eligible", "reason"]
+    }
+  }
+]

@@ -1,0 +1,37 @@
+{
+  "name": "workload_lambda_iam_role",
+  "implemented": true,
+  "description": "Lambda workload invokes AgentCore Runtime with its execution IAM role using SigV4.",
+  "sequence": 4,
+  "source_boundary": "lambda_workload_to_runtime",
+  "identity": {
+    "type": "lambda_execution_role",
+    "authentication_type": "aws_sigv4",
+    "credential_source": "lambda_runtime_credentials"
+  },
+  "runtime": {
+    "variant": "iam",
+    "arn_env": "AGENT_RUNTIME_ARN_IAM"
+  },
+  "setup": {
+    "script": "workload_lambda_setup.py"
+  },
+  "authorization": {
+    "allowed_action": "bedrock-agentcore:InvokeAgentRuntime",
+    "resource_env": "AGENT_RUNTIME_ARN_IAM"
+  },
+  "tests": [
+    {
+      "name": "lambda_workload_authorized_with_allow_execution_role",
+      "mode": "lambda-workload-authorized",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN_IAM",
+      "function_name_env": "PROMPT4_LAMBDA_WORKLOAD_ALLOW_FUNCTION_NAME"
+    },
+    {
+      "name": "lambda_workload_denied_with_deny_execution_role",
+      "mode": "lambda-workload-unauthorized",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN_IAM",
+      "function_name_env": "PROMPT4_LAMBDA_WORKLOAD_DENY_FUNCTION_NAME"
+    }
+  ]
+}

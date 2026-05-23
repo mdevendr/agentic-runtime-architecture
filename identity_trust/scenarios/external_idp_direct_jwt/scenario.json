@@ -1,0 +1,49 @@
+{
+  "name": "external_idp_direct_jwt",
+  "implemented": true,
+  "description": "AgentCore Runtime trusts a non-Cognito external IdP directly for JWT bearer authentication.",
+  "sequence": 7,
+  "source_boundary": "external_idp_client_to_runtime",
+  "identity": {
+    "type": "external_idp_jwt_identity",
+    "authentication_type": "jwt_bearer",
+    "credential_source": "external_idp_token_endpoint"
+  },
+  "runtime": {
+    "variant": "external-jwt",
+    "arn_env": "AGENT_RUNTIME_ARN_EXTERNAL_JWT"
+  },
+  "setup": {
+    "script": "external_idp_setup.py",
+    "requires": [
+      "EXTERNAL_IDP_DISCOVERY_URL",
+      "EXTERNAL_IDP_ALLOWED_CLIENTS",
+      "EXTERNAL_IDP_ALLOWED_AUDIENCES",
+      "EXTERNAL_IDP_ALLOWED_SCOPES",
+      "EXTERNAL_IDP_TOKEN_URL",
+      "EXTERNAL_IDP_CLIENT_ID",
+      "EXTERNAL_IDP_CLIENT_SECRET"
+    ]
+  },
+  "authorization": {
+    "expected_controls": [
+      "issuer",
+      "audience",
+      "azp",
+      "roles",
+      "expiry"
+    ]
+  },
+  "tests": [
+    {
+      "name": "runtime_authorized_with_entra_client_credentials_token",
+      "mode": "external-jwt-authorized",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN_EXTERNAL_JWT"
+    },
+    {
+      "name": "runtime_denied_with_missing_bearer_token",
+      "mode": "external-jwt-missing-token",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN_EXTERNAL_JWT"
+    }
+  ]
+}

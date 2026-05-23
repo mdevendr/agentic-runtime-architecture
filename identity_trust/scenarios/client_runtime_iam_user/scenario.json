@@ -1,0 +1,32 @@
+{
+  "name": "client_runtime_iam_user",
+  "implemented": true,
+  "description": "Client uses IAM user access keys and invokes AgentCore Runtime with SigV4.",
+  "sequence": 2,
+  "boundary": "client_to_runtime",
+  "identity": {
+    "type": "iam_user",
+    "authentication_type": "aws_sigv4",
+    "credential_source": "access_key"
+  },
+  "authorization": {
+    "allowed_action": "bedrock-agentcore:InvokeAgentRuntime",
+    "resource_env": "AGENT_RUNTIME_ARN"
+  },
+  "tests": [
+    {
+      "name": "runtime_authorized_with_allow_user",
+      "mode": "runtime-authorized",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN",
+      "access_key_id_env": "PROMPT4_CLIENT_RUNTIME_IAM_USER_ALLOW_ACCESS_KEY_ID",
+      "secret_access_key_env": "PROMPT4_CLIENT_RUNTIME_IAM_USER_ALLOW_SECRET_ACCESS_KEY"
+    },
+    {
+      "name": "runtime_denied_with_deny_user",
+      "mode": "runtime-unauthorized",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN",
+      "access_key_id_env": "PROMPT4_CLIENT_RUNTIME_IAM_USER_DENY_ACCESS_KEY_ID",
+      "secret_access_key_env": "PROMPT4_CLIENT_RUNTIME_IAM_USER_DENY_SECRET_ACCESS_KEY"
+    }
+  ]
+}

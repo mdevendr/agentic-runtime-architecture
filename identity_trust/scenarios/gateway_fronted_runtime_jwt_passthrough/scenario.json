@@ -1,0 +1,36 @@
+{
+  "name": "gateway_fronted_runtime_jwt_passthrough",
+  "implemented": true,
+  "description": "Client invokes AgentCore Gateway with a bearer JWT, and Gateway passes the same token through to a JWT-authorized Runtime target.",
+  "sequence": "gateway-fronted-runtime-4",
+  "boundary": "client_to_gateway_to_runtime",
+  "identity": {
+    "type": "jwt_passthrough",
+    "authentication_type": "gateway_custom_jwt_then_same_bearer_token_to_runtime",
+    "credential_source": "inbound_authorization_header"
+  },
+  "runtime": {
+    "target_type": "agentcore_runtime_target",
+    "arn_env": "AGENT_RUNTIME_ARN_OAUTH_CLIENT"
+  },
+  "setup": {
+    "script": "gateway_fronted_runtime/jwt_passthrough_setup.py",
+    "requires": [
+      "AGENT_RUNTIME_ARN_OAUTH_CLIENT",
+      "identity_provider.env"
+    ]
+  },
+  "authorization": {
+    "gateway_inbound": "CUSTOM_JWT validates Cognito JWT",
+    "gateway_to_runtime": "JWT_PASSTHROUGH forwards the inbound bearer token",
+    "runtime_authorizer": "Runtime JWT authorizer validates the same Cognito JWT"
+  },
+  "tests": [
+    {
+      "name": "inbound_jwt_passthrough_invokes_runtime_target",
+      "mode": "manual",
+      "evidence": "Invoke the Gateway JWT passthrough Runtime target with a Cognito bearer token and confirm the OAuth Runtime returns a successful agent response."
+    }
+  ]
+}
+

@@ -1,0 +1,36 @@
+{
+  "name": "api_gateway_lambda_oidc_jwt",
+  "implemented": true,
+  "description": "Browser user signs in through Cognito/Google, calls API Gateway, Lambda forwards a bearer token to AgentCore Runtime.",
+  "sequence": 6,
+  "source_boundary": "browser_to_api_gateway_lambda_to_runtime",
+  "identity": {
+    "type": "oidc_jwt_user_identity",
+    "authentication_type": "jwt_bearer",
+    "credential_source": "cognito_google_user_token"
+  },
+  "runtime": {
+    "variant": "oidc-jwt",
+    "arn_env": "AGENT_RUNTIME_ARN_OIDC_JWT"
+  },
+  "setup": {
+    "script": "api_gateway_oidc_setup.py"
+  },
+  "authorization": {
+    "expected_controls": [
+      "issuer",
+      "audience",
+      "expiry",
+      "scope_or_claim"
+    ]
+  },
+  "tests": [
+    {
+      "name": "manual_browser_google_login_callback_invokes_runtime",
+      "mode": "manual",
+      "start_url_env": "PROMPT4_OIDC_START_URL",
+      "callback_url_env": "PROMPT4_OIDC_CALLBACK_URL",
+      "evidence": "Open the start URL, complete Google login, and save the callback page showing runtime_status_code=200."
+    }
+  ]
+}

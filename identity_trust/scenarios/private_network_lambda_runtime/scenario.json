@@ -1,0 +1,41 @@
+{
+  "name": "private_network_lambda_runtime",
+  "implemented": true,
+  "description": "Private Lambda workload invokes Runtime through private network controls plus Runtime authentication.",
+  "sequence": 8,
+  "source_boundary": "private_lambda_to_private_runtime",
+  "identity": {
+    "type": "lambda_execution_role",
+    "authentication_type": "aws_sigv4",
+    "credential_source": "lambda_runtime_credentials"
+  },
+  "network": {
+    "type": "private_vpc_path",
+    "requires": [
+      "private_subnets",
+      "security_groups",
+      "runtime_private_access_or_supported_endpoint"
+    ]
+  },
+  "runtime": {
+    "variant": "iam-private",
+    "arn_env": "AGENT_RUNTIME_ARN_IAM_PRIVATE"
+  },
+  "setup": {
+    "script": "private_network_setup.py"
+  },
+  "tests": [
+    {
+      "name": "private_lambda_authorized_with_allow_execution_role",
+      "mode": "lambda-workload-authorized",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN_IAM_PRIVATE",
+      "function_name_env": "PROMPT4_PRIVATE_LAMBDA_ALLOW_FUNCTION_NAME"
+    },
+    {
+      "name": "private_lambda_denied_with_deny_execution_role",
+      "mode": "lambda-workload-unauthorized",
+      "runtime_arn_env": "AGENT_RUNTIME_ARN_IAM_PRIVATE",
+      "function_name_env": "PROMPT4_PRIVATE_LAMBDA_DENY_FUNCTION_NAME"
+    }
+  ]
+}

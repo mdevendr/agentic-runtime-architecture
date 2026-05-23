@@ -1,0 +1,37 @@
+{
+  "name": "gateway_fronted_runtime",
+  "implemented": false,
+  "description": "Client invokes AgentCore Runtime through an AgentCore Gateway Runtime target. This is an alternate Runtime front door, not an MCP Gateway tool target.",
+  "sequence": "alternative-inbound",
+  "boundary": "client_to_gateway_to_runtime",
+  "identity": {
+    "type": "gateway_fronted_runtime_identity",
+    "authentication_type": "gateway_inbound_auth_then_runtime_target_auth",
+    "credential_source": "client_to_gateway"
+  },
+  "runtime": {
+    "target_type": "agentcore_runtime_target",
+    "arn_env": "AGENT_RUNTIME_ARN"
+  },
+  "setup": {
+    "script": "runtime_gateway_frontdoor_setup.py",
+    "requires": [
+      "PROMPT4_RUNTIME_FRONTDOOR_GATEWAY_ID",
+      "AGENT_RUNTIME_ARN"
+    ]
+  },
+  "authorization": {
+    "expected_controls": [
+      "Gateway inbound auth",
+      "Gateway to Runtime outbound auth",
+      "Runtime target route"
+    ]
+  },
+  "tests": [
+    {
+      "name": "gateway_frontdoor_invokes_runtime_target",
+      "mode": "manual",
+      "evidence": "Invoke the Gateway Runtime target URL and capture that the request reaches the configured AgentCore Runtime."
+    }
+  ]
+}

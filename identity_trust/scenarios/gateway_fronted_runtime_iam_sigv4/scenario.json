@@ -1,0 +1,35 @@
+{
+  "name": "gateway_fronted_runtime_iam_sigv4",
+  "implemented": false,
+  "description": "Client invokes AgentCore Gateway, and Gateway invokes AgentCore Runtime target using its Gateway service role with IAM/SigV4.",
+  "sequence": "gateway-fronted-runtime-1",
+  "boundary": "client_to_gateway_to_runtime",
+  "identity": {
+    "type": "gateway_service_role_iam_sigv4",
+    "authentication_type": "gateway_inbound_auth_then_gateway_service_role_sigv4_to_runtime",
+    "credential_source": "agentcore_gateway_service_role"
+  },
+  "runtime": {
+    "target_type": "agentcore_runtime_target",
+    "arn_env": "AGENT_RUNTIME_ARN_IAM"
+  },
+  "setup": {
+    "script": "gateway_fronted_runtime/iam_sigv4_setup.py",
+    "requires": [
+      "AGENT_RUNTIME_ARN_IAM"
+    ]
+  },
+  "authorization": {
+    "gateway_inbound": "AWS_IAM by default",
+    "gateway_to_runtime": "Gateway service role signs InvokeAgentRuntime with SigV4",
+    "runtime_authorizer": "Runtime IAM auth validates SigV4 and IAM policy bedrock-agentcore:InvokeAgentRuntime"
+  },
+  "tests": [
+    {
+      "name": "gateway_service_role_invokes_runtime_target",
+      "mode": "manual",
+      "evidence": "Run setup script once SDK/CLI supports http.agentcoreRuntime target shape, invoke the Gateway front-door URL, and capture that the request reaches the configured Runtime."
+    }
+  ]
+}
+

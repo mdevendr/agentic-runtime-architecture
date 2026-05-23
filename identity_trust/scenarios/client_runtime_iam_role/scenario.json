@@ -1,0 +1,43 @@
+{
+  "name": "client_runtime_iam_role",
+  "implemented": true,
+  "description": "Client assumes dedicated IAM roles and invokes AgentCore Runtime with SigV4.",
+  "sequence": 1,
+  "boundary": "client_to_runtime",
+  "identity": {
+    "type": "iam_role",
+    "authentication_type": "aws_sigv4",
+    "credential_source": "sts_assume_role"
+  },
+  "setup": {
+    "script": "identity_setup.py",
+    "creates": [
+      {
+        "name": "Prompt4ClientRuntimeIamRoleAllow",
+        "env": "PROMPT4_CLIENT_RUNTIME_IAM_ROLE_ALLOW_ARN",
+        "purpose": "Positive client identity with InvokeAgentRuntime allow policy."
+      },
+      {
+        "name": "Prompt4ClientRuntimeIamRoleDeny",
+        "env": "PROMPT4_CLIENT_RUNTIME_IAM_ROLE_DENY_ARN",
+        "purpose": "Negative client identity with explicit InvokeAgentRuntime deny policy."
+      }
+    ]
+  },
+  "authorization": {
+    "allowed_action": "bedrock-agentcore:InvokeAgentRuntime",
+    "resource_env": "AGENT_RUNTIME_ARN"
+  },
+  "tests": [
+    {
+      "name": "runtime_authorized_with_allow_role",
+      "mode": "runtime-authorized",
+      "role_arn_env": "PROMPT4_CLIENT_RUNTIME_IAM_ROLE_ALLOW_ARN"
+    },
+    {
+      "name": "runtime_denied_with_deny_role",
+      "mode": "runtime-unauthorized",
+      "role_arn_env": "PROMPT4_CLIENT_RUNTIME_IAM_ROLE_DENY_ARN"
+    }
+  ]
+}

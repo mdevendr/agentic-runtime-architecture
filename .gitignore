@@ -1,0 +1,24 @@
+# Python generated artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Build and deployment artifacts
+build/
+dist/
+*.zip
+*.egg-info/
+
+# Local environment and secret material
+*.env
+.env
+
+# Prompt 4 evidence captures can contain account IDs, ARNs, request metadata, or redacted token traces.
+identity_trust/evidence/*
+!identity_trust/evidence/.gitkeep
+
+# Local editor/system files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

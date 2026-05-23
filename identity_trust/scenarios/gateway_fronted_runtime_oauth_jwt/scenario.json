@@ -1,0 +1,36 @@
+{
+  "name": "gateway_fronted_runtime_oauth_jwt",
+  "implemented": true,
+  "description": "Client invokes AgentCore Gateway, and Gateway obtains an OAuth access token from AgentCore Identity to invoke a JWT-authorized AgentCore Runtime target.",
+  "sequence": "gateway-fronted-runtime-3",
+  "boundary": "client_to_gateway_to_runtime",
+  "identity": {
+    "type": "agentcore_identity_oauth_jwt",
+    "authentication_type": "gateway_inbound_iam_then_oauth_jwt_to_runtime",
+    "credential_source": "agentcore_identity_oauth2_credential_provider"
+  },
+  "runtime": {
+    "target_type": "agentcore_runtime_target",
+    "arn_env": "AGENT_RUNTIME_ARN_OAUTH_CLIENT"
+  },
+  "setup": {
+    "script": "gateway_fronted_runtime/oauth_jwt_setup.py",
+    "requires": [
+      "AGENT_RUNTIME_ARN_OAUTH_CLIENT",
+      "identity_provider.env"
+    ]
+  },
+  "authorization": {
+    "gateway_inbound": "AWS_IAM by default",
+    "gateway_to_runtime": "Gateway obtains OAuth access token through AgentCore Identity credential provider",
+    "runtime_authorizer": "Runtime JWT authorizer validates Cognito issuer, signature, app/client claim, audience, and scope"
+  },
+  "tests": [
+    {
+      "name": "gateway_oauth_token_invokes_jwt_runtime_target",
+      "mode": "manual",
+      "evidence": "Invoke the Gateway OAuth/JWT Runtime target and confirm the OAuth Runtime returns a successful agent response."
+    }
+  ]
+}
+

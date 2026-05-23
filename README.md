@@ -1,202 +1,197 @@
-# AI Agent Tooling Architecture Patterns
-**Direct Tools, MCP Boundaries, and Multi-Server Tool Orchestration**
+# LLM Agent Runtime, Execution, and Trust Boundary Patterns
 
-Tool use is one of the most important architectural decisions in AI agent systems. It determines where execution happens, where contracts live, how failures propagate, and how much isolation exists between the agent, the model, and the systems being acted upon.
+This repository contains proof-driven architecture patterns for LLM agents built around direct tools, MCP execution boundaries, Amazon Bedrock AgentCore Runtime, AgentCore Gateway, and Runtime inbound identity.
 
-This repository presents a progressive set of **proof-driven AI agent tooling architecture patterns**, starting with local in-process tool execution and evolving toward Model Context Protocol (MCP) based execution boundaries.
+Most agent discussions start with tool calling: schemas, selection, invocation, and results. In production, the harder architectural question is where execution happens, whose identity is used, and which boundary is trusted when reasoning becomes action.
 
-The objective is to help architects and platform teams reason about **execution authority, trust boundaries, validation ownership, observability, and operational blast radius** when designing tool-capable AI agents.
+These examples are intentionally small, but each pattern proves a specific boundary:
 
----
+- where tool execution authority resides
+- where tool contracts and validation live
+- how failures propagate across boundaries
+- how Runtime, Gateway, and target services divide responsibility
+- how inbound identity and trust are enforced for AgentCore Runtime
 
-**Mahesh Devendran** — Multi Cloud Architect & DevOps Leader | AWS | Azure | GCP | Kubernetes | CKA & Terraform Certified | Gen AI & Automation
+## Author
 
-**LinkedIn:** https://www.linkedin.com/in/mahesh-devendran
+**Mahesh Devendran** - Cloud Architect focused on secure, scalable, and identity-driven AI platforms across AWS, Azure, and GCP.
 
----
+My work focuses on zero-trust data access patterns, serverless architecture, AI-driven architectures, predictable resilient systems, and regulated-industry workloads where correctness and clarity matter most.
 
-## Architectural Context
+- LinkedIn: [mahesh-devendran](https://www.linkedin.com/in/mahesh-devendran-83a3b214/)
+- Medium: [@mahesh.devendran](https://medium.com/@mahesh.devendran)
 
-An AI model does not execute tools. It selects a tool and proposes arguments.
+## Architecture Progression
 
-The architecture around the model determines what happens next:
+```text
+Stage 1: Direct tools
+Runtime owns reasoning, validation, and tool execution.
 
-- whether the agent executes a Python function directly
-- whether execution crosses a protocol boundary
-- whether tool schemas are local or externalized
-- whether validation happens inside the agent or inside a tool server
-- whether failures are local process failures or isolated server-side failures
+Stage 2: MCP tools
+Runtime owns reasoning and orchestration. MCP servers own execution.
 
-This repository focuses on those execution boundaries rather than on prompt engineering alone.
+Stage 3: AgentCore Gateway tools
+Runtime owns orchestration. Gateway owns mediation and routing. Targets own execution.
 
----
+Stage 4: Runtime identity and trust
+Runtime inbound authorization is tested directly and through Gateway-fronted Runtime modes.
+```
 
-## Architectural Principles
+## Patterns
 
-Across the patterns, the following principles are held constant:
+### 1. Direct In-Process Tooling
 
-- **The LLM selects tools; it does not execute them.**
-- **Tool contracts must be explicit** through schema, description, and validation.
-- **Execution authority must be identifiable** in code and logs.
-- **Failure evidence matters** as much as successful execution.
-- **Boundary placement is an architectural decision**, not an implementation detail.
-- Each pattern changes the execution boundary deliberately so the trade-off is observable.
+Local agent process with local Python tools.
 
----
+![Direct tooling](architecture/DirectTooling.png)
 
-## Patterns Covered
+Tool schemas, validation, and execution are inside the same runtime/process boundary as the agent.
 
-### Pattern 1 — Direct Tools Architecture
-**In-Process Tool Execution**
+Implementation: [direct-tools-architecture](direct-tools-architecture)
 
-Direct Tools is the baseline pattern. The agent exposes local Python functions to the LLM as callable tools. Tool schemas and validation live inside the agent code, and execution happens in the same Python process as the agent loop.
+### 2. AgentCore Runtime Direct Tooling
 
-![Direct Tools architecture](direct_vs_mcp/architechture/DirectTooling.png)
+The same direct-tool execution model hosted behind AgentCore Runtime.
 
-**Architectural focus:**  
-Establish the baseline execution model where there is no tool protocol boundary. The agent framework validates inputs and executes local Python handlers in-process.
+![AgentCore direct tooling](architecture/AgentCoreDirectTooling.png)
 
-**Implementation:**  
-[direct_vs_mcp/direct-tools-architecture](direct_vs_mcp/direct-tools-architecture)
+AgentCore Runtime changes the hosting and invocation boundary. It does not introduce a separate tool execution boundary.
 
-**Proof points:**
+Implementation: [agentcore_runtime_direct_tools_baseline](agentcore_runtime_direct_tools_baseline)
 
-- LLM selects `calculate_order_total`.
-- Agent executes a local Python function.
-- Pydantic enforces local validation.
-- Invalid SKU input fails inside the agent process.
-- Logs show tool selection, raw input, validation, execution, and result.
+### 3. MCP Process Boundary Tooling
 
----
+Agent process with MCP clients and independently owned MCP server processes.
 
-### Pattern 2 — MCP Server Architecture
-**Explicit Tool Execution Boundary**
+![MCP tooling](architecture/MCPTooling.png)
 
-MCP introduces a protocol boundary between the agent and tool execution. The agent connects to MCP servers using stdio transport, discovers tools using `tools/list`, and routes tool calls using `tools/call`.
+MCP moves tool contracts, validation, and execution out of the agent runtime and behind a protocol/process boundary.
 
-In the current implementation, a single orchestrating agent connects to two independent MCP servers:
+Implementation: [mcp-server-architecture](mcp-server-architecture)
 
-- Order MCP server owns `calculate_order_total`
-- Refund MCP server owns `check_refund_eligibility`
+### 4. AgentCore Runtime with MCP Tooling
 
-![MCP tooling architecture](direct_vs_mcp/architechture/MCPTooling.png)
+AgentCore Runtime hosts the agent. MCP server boundaries remain the tool execution boundary.
 
-**Architectural focus:**  
-Prove that the agent becomes an orchestration layer while MCP servers become execution authorities. Tool schemas, validation, and execution move outside the agent process and behind explicit MCP stdio boundaries.
+![AgentCore MCP tooling](architecture/AgentCoreMCPTooling.png)
 
-**Implementation:**  
-[direct_vs_mcp/mcp-server-architecture](direct_vs_mcp/mcp-server-architecture)
+The hosting boundary changes, but tool execution still crosses MCP `tools/list`, `tools/schema`, and `tools/call`.
 
-**Proof points:**
+Implementation: [agentcore_runtime_mcp_tools_boundary](agentcore_runtime_mcp_tools_boundary)
 
-- Agent starts separate MCP server processes.
-- Agent creates separate MCP client sessions.
-- Agent discovers tools from each server.
-- Agent builds a `tool_name -> owning MCP session` map.
-- Order tool execution crosses the ORDER MCP boundary.
-- Refund tool execution crosses the REFUND MCP boundary.
-- Refund validation failure is isolated while order execution succeeds.
+### 5. AgentCore Gateway Tooling
 
----
+AgentCore Gateway becomes the managed MCP mediation layer between Runtime and target services.
+
+![AgentCore Gateway tooling](architecture/AgentCoreGatewayTooling.png)
+
+Runtime owns orchestration. Gateway owns MCP exposure and routing. Lambda/API targets own execution.
+
+Implementation: [agentcore_runtime_gateway_tools_boundary](agentcore_runtime_gateway_tools_boundary)
+
+### 6. Runtime Inbound Identity and Trust
+
+Runtime inbound authorization is tested across IAM, workload identity, Cognito JWT, external JWT, private endpoint, and Gateway-fronted Runtime modes.
+
+![Runtime inbound identity and trust](architecture/AgentCoreRuntimeIdentityTrustTooling.png)
+
+Direct Runtime invocation proves the baseline inbound trust boundary:
+
+```text
+Caller -> AgentCore Runtime
+```
+
+Gateway-fronted Runtime proves the alternate front-door pattern:
+
+```text
+Caller -> AgentCore Gateway -> AgentCore Runtime target
+```
+
+![Gateway-fronted Runtime](architecture/GatewayFrontedAgentCoreRuntime.png)
+
+The key conclusion:
+
+```text
+Gateway is the front door.
+Runtime remains the final authorization boundary.
+The target credential provider decides whose identity Runtime authorizes.
+```
+
+Implementation and runbooks: [identity_trust](identity_trust)
 
 ## Repository Structure
 
 ```text
-direct_vs_mcp/
-  architechture/
-    DirectTooling.png
-    MCPTooling.png
+architecture/
+  DirectTooling.png
+  AgentCoreDirectTooling.png
+  MCPTooling.png
+  AgentCoreMCPTooling.png
+  AgentCoreGatewayTooling.png
+  AgentCoreRuntimeIdentityTrustTooling.png
+  GatewayFrontedAgentCoreRuntime.png
+  Prompt4IdentityTrustBoundary.drawio
 
-  direct-tools-architecture/
-    direct_tools_agent.py
-    README.md
-
-  mcp-server-architecture/
-    mcp_agent.py
-    mcp_order_server.py
-    mcp_refund_server.py
-    README.md
+direct-tools-architecture/
+mcp-server-architecture/
+agentcore_runtime_direct_tools_baseline/
+agentcore_runtime_mcp_tools_boundary/
+agentcore_runtime_gateway_tools_boundary/
+identity_trust/
 ```
 
----
+## Quick Start
 
-## Running the Examples
+Each pattern folder has its own README with setup, run commands, expected evidence, and architectural interpretation.
 
-### Direct Tools
+Common environment variables:
 
-```powershell
-cd direct_vs_mcp/direct-tools-architecture
+```bash
+export AWS_REGION="eu-west-2"
+export BEDROCK_MODEL_ID="<bedrock-model-id-that-supports-tool-use>"
+```
+
+Local direct tools:
+
+```bash
+cd direct-tools-architecture
 pip install boto3 pydantic
-$env:AWS_REGION = "eu-west-2"
-$env:BEDROCK_MODEL_ID = "<bedrock-model-id-that-supports-tool-use>"
-
 python direct_tools_agent.py success
 python direct_tools_agent.py failure
 ```
 
-### MCP / Multi-MCP
+Local MCP:
 
-```powershell
-cd direct_vs_mcp/mcp-server-architecture
-pip install mcp boto3
-$env:AWS_REGION = "eu-west-2"
-$env:BEDROCK_MODEL_ID = "<bedrock-model-id-that-supports-tool-use>"
-
+```bash
+cd mcp-server-architecture
+pip install boto3 mcp
 python mcp_agent.py success
 python mcp_agent.py failure
 ```
 
----
+AgentCore Runtime and Gateway patterns require AWS permissions to create AgentCore Runtime, Gateway, Lambda, IAM roles, S3 deployment buckets, and related resources. See each folder README before running deployment scripts.
 
-## Observing Behaviour
+## Boundary Comparison
 
-The examples are intentionally instrumented with logs so the execution model is visible.
+```text
+Pattern                         Runtime role                         Tool execution boundary
+---------------------------------------------------------------------------------------------------------
+Direct tools                    Reasoning + validation + execution   Same process as agent
+AgentCore direct tools          Hosted reasoning + local execution    Same Runtime application
+MCP tooling                     Reasoning + orchestration             MCP server process/service
+AgentCore Runtime + MCP         Hosted orchestration                  MCP server process/service
+AgentCore Gateway tooling       Hosted orchestration                  Gateway target service
+Runtime identity and trust      Final inbound authorization           Runtime auth boundary
+```
 
-For Direct Tools, observe:
+## Public Repository Hygiene
 
-- tool selected by the LLM
-- raw tool input
-- local validation result
-- local Python function execution
-- returned tool result
-
-For MCP, observe:
-
-- MCP server process startup
-- `tools/list` discovery per server
-- tool ownership mapping
-- routing to the owning MCP server
-- server-side execution logs
-- MCP error propagation
-
-The goal is not merely to return an answer. The goal is to prove where execution happened.
-
----
-
-## Key Comparison
-
-| Concern | Direct Tools | MCP / Multi-MCP |
-|---|---|---|
-| Tool execution | Agent process | MCP server process |
-| Tool schema location | Agent code | MCP server |
-| Validation location | Agent code | MCP server |
-| Boundary | None for tools | stdio process boundary |
-| Agent role | Orchestrator and executor | Orchestrator only |
-| Tool ownership | Coupled to agent | Externalized to server |
-| Failure domain | Shared with agent | Isolated per MCP server |
-| Operational fit | Simple trusted tools | Boundary-aware tool systems |
-
----
+Generated deployment artifacts, dependency build folders, local `.env` files, captured evidence, and Python caches are intentionally excluded. The repository should contain source code, scenario definitions, runbooks, and architecture diagrams.
 
 ## Usage Note
 
-The code in this repository is provided for **architectural exploration and design validation**. It is intentionally minimal and scoped to demonstrate tooling execution patterns, not to provide a production-ready agent platform.
-
-Production systems must add appropriate authentication, authorization, secrets handling, deployment hardening, observability, cost controls, model governance, and operational runbooks.
-
----
+These examples are for architectural exploration and design validation. They are not production templates. Production systems need hardened authentication, authorization, secret handling, network controls, observability, cost governance, model governance, cleanup automation, and operational runbooks.
 
 ## Disclaimer
 
 These examples are educational reference implementations. They are not prescriptive production architectures and must be adapted to organizational security, compliance, availability, and operational requirements.
-

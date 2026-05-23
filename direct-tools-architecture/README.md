@@ -1,12 +1,18 @@
-# Direct Tools Architecture: AI Agent Implementation
+# Direct Tools Architecture: In-Process Execution Boundary
 
-This implementation demonstrates a Direct Tools architecture for AI agents, where tools are local Python functions executed in-process by the agent framework. Bedrock receives the tool schema and uses it to guide tool selection and argument generation. However, hard enforcement of the tool contract is performed by the local Python runtime using Pydantic validation before the handler executes.
+This pattern establishes the Stage 1 baseline: the agent application, tool schemas, validation logic, dispatcher, and tool functions all run inside the same process boundary. Bedrock receives the tool schema and uses it to guide tool selection and argument generation, but hard enforcement of the tool contract is performed by the local Python runtime using Pydantic validation before the handler executes.
 
 ## Architecture Diagram
 
-![Direct Tools architecture](../architechture/DirectTooling.png)
+Standalone direct tools:
 
-Key point: only the LLM call leaves the agent process. Tool validation and execution happen inside the same Python process and memory boundary as the agent loop.
+![Direct Tools architecture](../architecture/DirectTooling.png)
+
+Hosted AgentCore Runtime variant:
+
+![AgentCore Direct Tools architecture](../architecture/AgentCoreDirectTooling.png)
+
+Key point: only the LLM call leaves the agent process. Tool validation and execution happen inside the same Python process and memory boundary as the agent loop. In the AgentCore variant, the same agent application and tools are packaged into AgentCore Runtime, so the hosting entry point changes but the direct tool execution boundary does not.
 
 ## Code
 

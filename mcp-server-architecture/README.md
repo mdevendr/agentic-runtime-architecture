@@ -1,6 +1,6 @@
-# Multi-MCP Server Architecture
+# MCP Server Architecture: Protocol Execution Boundary
 
-This implementation demonstrates a single AI agent orchestrating tools across two independent MCP servers over stdio transport.
+This pattern establishes the Stage 2 boundary shift: the agent remains the reasoning and orchestration layer, while tool contracts, validation, and execution move behind independently owned MCP server boundaries over stdio transport.
 
 ```text
 Agent process
@@ -24,7 +24,27 @@ This is not a separate execution pattern from MCP. It is MCP orchestration acros
 
 ## Architecture Diagram
 
-![MCP tooling architecture](../architechture/MCPTooling.png)
+![MCP tooling architecture](../architecture/MCPTooling.png)
+
+Hosted AgentCore Runtime variant:
+
+![AgentCore MCP tooling architecture](../architecture/AgentCoreMCPTooling.png)
+
+Implementation: [../agentcore_runtime_mcp_tools_boundary](../agentcore_runtime_mcp_tools_boundary)
+
+The hosted variant keeps the MCP stdio boundary and re-proves `tools/list` and `tools/call` from inside Bedrock AgentCore Runtime.
+
+Difference from this local version:
+
+```text
+Local:
+User -> local agent process -> MCP clients -> stdio -> MCP servers
+
+AgentCore hosted:
+User/client -> AgentCore Runtime endpoint -> deployed agent process -> MCP clients -> stdio -> MCP servers
+```
+
+The MCP boundary does not change. The hosted variant adds the AgentCore runtime endpoint, runtime ARN/session invocation, READY lifecycle state, managed execution role, and deployment artifact.
 
 ## Code
 
@@ -36,12 +56,12 @@ Files:
 
 Run:
 
-```powershell
+```bash
 pip install mcp boto3
-$env:AWS_REGION = "eu-west-2"
-$env:BEDROCK_MODEL_ID = "<bedrock-model-id-that-supports-tool-use>"
-python .\mcp_agent.py success
-python .\mcp_agent.py failure
+export AWS_REGION="eu-west-2"
+export BEDROCK_MODEL_ID="<bedrock-model-id-that-supports-tool-use>"
+python mcp_agent.py success
+python mcp_agent.py failure
 ```
 
 Assumption: the configured Bedrock model supports tool use through the Converse API. Without `BEDROCK_MODEL_ID` and AWS credentials, the agent can still start both MCP servers and discover tools, but it cannot complete real LLM tool selection.
@@ -109,16 +129,16 @@ There is no local execution path in the agent. The agent imports MCP client APIs
 
 Syntax validation:
 
-```powershell
-python -m py_compile .\mcp_agent.py .\mcp_order_server.py .\mcp_refund_server.py
+```bash
+python -m py_compile mcp_agent.py mcp_order_server.py mcp_refund_server.py
 ```
 
 Result: passed.
 
 Discovery validation without Bedrock credentials:
 
-```powershell
-python .\mcp_agent.py success
+```bash
+python mcp_agent.py success
 ```
 
 Observed boundary evidence before the expected Bedrock configuration failure:
