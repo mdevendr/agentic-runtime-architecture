@@ -1,0 +1,69 @@
+{
+  "catalogVersion": "1.0.0",
+  "sourceSchema": "agentcore_runtime_gateway_tools_boundary\\tool_schema.json",
+  "catalogHash": "75963cd46976b7cd0696e2ad51d747c19662ac5907894dadae6228280baec521",
+  "tools": [
+    {
+      "name": "calculate_order_total",
+      "schemaVersion": "1.0.0",
+      "inputContractHash": "d06bbaba530a7fee3a44fd38e8ca40dc432c82c497372c16ec73642008c97f00",
+      "targetBinding": "calculate_order_totalTarget",
+      "credentialMode": "GATEWAY_IAM_ROLE",
+      "owner": "orders-platform",
+      "deprecated": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "description": "Product SKU. Must start with SKU-."
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Quantity to order. Must be at least 1."
+          },
+          "unit_price": {
+            "type": "number",
+            "description": "Unit price. Must be greater than 0."
+          }
+        },
+        "required": [
+          "sku",
+          "quantity",
+          "unit_price"
+        ]
+      }
+    },
+    {
+      "name": "check_refund_eligibility",
+      "schemaVersion": "1.0.0",
+      "inputContractHash": "eb461a7d53b101c83422ee2a5208f26184964ea26f5684775e22d85191badecd",
+      "targetBinding": "check_refund_eligibilityTarget",
+      "credentialMode": "GATEWAY_IAM_ROLE",
+      "owner": "orders-platform",
+      "deprecated": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order id. Must start with ORD-."
+          },
+          "days_since_purchase": {
+            "type": "integer",
+            "description": "Number of days since purchase. Must be non-negative."
+          },
+          "item_opened": {
+            "type": "boolean",
+            "description": "Whether the item has been opened."
+          }
+        },
+        "required": [
+          "order_id",
+          "days_since_purchase",
+          "item_opened"
+        ]
+      }
+    }
+  ]
+}

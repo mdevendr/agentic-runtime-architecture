@@ -2,6 +2,8 @@
 
 This pattern hosts the agent inside Amazon Bedrock AgentCore Runtime while preserving the MCP execution boundary. The Runtime endpoint becomes the managed invocation surface, but tool execution still crosses MCP client sessions and stdio transport before reaching the owning MCP server.
 
+This implementation uses MCP `stdio` transport to prove the process boundary with a minimal deployable artifact. For distributed MCP execution, promote this boundary to Streamable HTTP carrying JSON-RPC messages, enforce JSON Schema at the transport edge, and propagate trace/correlation context through the Runtime, MCP client, MCP server, and downstream targets.
+
 Direct Tools are **retained only as a comparison baseline** in `../agentcore_runtime_direct_tools_baseline`. They are not used by this implementation.
 
 New/changed files in this Prompt 2 implementation:
@@ -47,6 +49,13 @@ AgentCore Runtime
 ```
 
 The agent does not import or call the tool functions. It discovers each server's contracts through MCP `tools/list`, builds a `tool_name -> owning MCP session` route map, and invokes tools through MCP `tools/call`.
+
+Production hardening evidence for idempotency, resumable state, circuit breakers, and schema catalogs lives in:
+
+- `../shared/idempotency.py`
+- `../shared/state_store.py`
+- `../shared/circuit_breaker.py`
+- `../schema_catalog/`
 
 ## Infrastructure Setup
 

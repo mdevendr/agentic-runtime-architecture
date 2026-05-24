@@ -1,6 +1,8 @@
-# LLM Agent Runtime, Execution, and Trust Boundary Patterns
+# Agentic Runtime Architecture
 
-This repository contains proof-driven architecture patterns for LLM agents built around direct tools, MCP execution boundaries, Amazon Bedrock AgentCore Runtime, AgentCore Gateway, and Runtime inbound identity.
+Architecture patterns for building secure, observable, and governed LLM agent runtimes.
+
+This repository contains proof-driven architecture patterns for LLM agents built around direct tools, MCP execution boundaries, Amazon Bedrock AgentCore Runtime, AgentCore Gateway, Runtime inbound identity, and production hardening controls.
 
 Most agent discussions start with tool calling: schemas, selection, invocation, and results. In production, the harder architectural question is where execution happens, whose identity is used, and which boundary is trusted when reasoning becomes action.
 
@@ -35,6 +37,12 @@ Runtime owns orchestration. Gateway owns mediation and routing. Targets own exec
 
 Stage 4: Runtime identity and trust
 Runtime inbound authorization is tested directly and through Gateway-fronted Runtime modes.
+
+Production hardening
+Adds evidence for resumable Runtime state, idempotency, schema catalogs, correlation, circuit breakers, and identity substitution hardening.
+
+Multi-tenant agents
+Adds evidence for pooled Runtime orchestration where verified tenant context controls the allowed tool catalog.
 ```
 
 ## Patterns
@@ -119,6 +127,36 @@ The target credential provider decides whose identity Runtime authorizes.
 
 Implementation and runbooks: [identity_trust](identity_trust)
 
+### 7. Production Hardening Evidence
+
+The baseline patterns are intentionally small. The hardening layer captures controls that enterprise agent runtimes typically need once tool execution crosses process, network, identity, and governance boundaries.
+
+Evidence: [production-hardening](production-hardening)
+
+Key supporting modules:
+
+- [shared/execution_context.py](shared/execution_context.py) - correlation and trace context across Runtime, MCP, Gateway, and targets.
+- [shared/idempotency.py](shared/idempotency.py) - deterministic idempotency key generation and local duplicate suppression evidence.
+- [shared/state_store.py](shared/state_store.py) - resumable Converse execution frame model.
+- [shared/circuit_breaker.py](shared/circuit_breaker.py) - bounded tool-loop execution control.
+- [schema_catalog](schema_catalog) - static cached tool schema catalog builder and example.
+- [identity_trust/caller_context_assertion.py](identity_trust/caller_context_assertion.py) - signed caller-context assertion for substitution-mode hardening.
+- [identity_trust/caller_context_demo](identity_trust/caller_context_demo) - client-signed payload and Gateway-signed header evidence for preserving original caller context.
+
+### 8. Multi-Tenant Agent Runtime Evidence
+
+A pooled Runtime can serve multiple tenants only if tenant context is verified before orchestration begins and then used to select allowed tools, memory scope, rate limits, outbound credentials, and audit context.
+
+Evidence: [multi_tenant_agents](multi_tenant_agents)
+
+The demo proves that Runtime authorizes tool use from verified tenant context, not from prompt text or model output:
+
+```text
+tenant-a -> create_refund -> allowed
+tenant-b -> check_order -> allowed
+tenant-b -> create_refund -> denied
+```
+
 ## Repository Structure
 
 ```text
@@ -138,6 +176,10 @@ agentcore_runtime_direct_tools_baseline/
 agentcore_runtime_mcp_tools_boundary/
 agentcore_runtime_gateway_tools_boundary/
 identity_trust/
+production-hardening/
+multi_tenant_agents/
+schema_catalog/
+shared/
 ```
 
 ## Quick Start
@@ -182,6 +224,8 @@ MCP tooling                     Reasoning + orchestration             MCP server
 AgentCore Runtime + MCP         Hosted orchestration                  MCP server process/service
 AgentCore Gateway tooling       Hosted orchestration                  Gateway target service
 Runtime identity and trust      Final inbound authorization           Runtime auth boundary
+Production hardening            Resilience + governance controls      Cross-boundary evidence layer
+Multi-tenant agents             Tenant-aware orchestration            Runtime policy decision before tool execution
 ```
 
 ## Public Repository Hygiene

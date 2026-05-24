@@ -2,6 +2,8 @@
 
 This pattern introduces Amazon Bedrock AgentCore Gateway as the platform-mediated MCP tool boundary. Runtime remains the reasoning and orchestration boundary, Gateway owns tool exposure and routing, and downstream Lambda targets own execution.
 
+Gateway is the policy enforcement point for tool exposure in this pattern. It owns the visible tool surface, target binding, credential mode, and invocation path between the agent runtime and downstream capabilities.
+
 Local MCP servers from Prompt 2 are **retained only for comparison** in `../agentcore_runtime_mcp_tools_boundary`. They are not used by this implementation.
 
 New/changed files in this Prompt 3 implementation (Two per-tool Gateway Lambda targets):
@@ -33,6 +35,13 @@ Runtime -> Agent -> MCPClient -> AgentCore Gateway -> Lambda #1 (calculate_order
 ```
 
 The agent does not start local MCP servers. AgentCore Gateway exposes a single MCP endpoint that aggregates two per-tool Lambda targets. Each Lambda function owns execution for one tool. The Gateway routes tool requests to the appropriate Lambda target.
+
+For production hardening, pair Gateway mediation with:
+
+- static schema catalogs from `../schema_catalog/`
+- correlation context from `../shared/execution_context.py`
+- idempotency keys from `../shared/idempotency.py` for mutating targets
+- circuit breakers from `../shared/circuit_breaker.py` to bound recursive tool loops
 
 ## Infrastructure Setup
 

@@ -25,6 +25,24 @@ Do not reuse the MCP tools Gateway for these scenarios. A Gateway-fronted Runtim
 
 Gateway is the front door in all four modes, but Runtime remains the target and final authorization boundary. Modes G1 and G3 use Gateway-carried credentials at Runtime. Modes G2 and G4 preserve caller-carried identity at Runtime.
 
+## Identity Propagation vs Substitution
+
+| Mode | Runtime-facing identity | Category |
+|---|---|---|
+| `GATEWAY_IAM_ROLE` | Gateway service role | Substitution |
+| `CALLER_IAM_CREDENTIALS` | Original IAM caller | Propagation |
+| `OAUTH` | Gateway-obtained OAuth/JWT token | Substitution |
+| `JWT_PASSTHROUGH` | Original caller bearer token | Propagation |
+
+Substitution modes are valid, but they can hide original caller context unless the architecture preserves it deliberately. When caller attribution, tenant policy, or business authorization must survive substitution, carry a signed caller-context assertion alongside the Runtime-facing identity.
+
+Evidence:
+
+- `../caller_context_assertion.py` - dependency-light sign/verify helper.
+- `../caller_context_demo/` - runnable demo where a Runtime-side `who_am_i` tool verifies caller context while Runtime-facing identity remains `GatewayServiceRole`.
+  - Client-signed payload path: Runtime validates an assertion carried in the JSON payload.
+  - Gateway-signed header path: Gateway REQUEST interceptor signs caller context, Gateway propagates `X-Amzn-Bedrock-AgentCore-Runtime-Custom-Caller-Context-Assertion`, and Runtime reads it through the request header allowlist.
+
 ## Current SDK/CLI Support Check
 
 The Python setup script uses boto3/botocore. Version 1.43.14 exposes Gateway HTTP Runtime targets:
