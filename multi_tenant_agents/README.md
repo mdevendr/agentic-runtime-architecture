@@ -1,8 +1,8 @@
-# Multi-Tenant Agent Runtime Evidence
+# Multi-Tenant Agent Runtime Boundaries
 
-This folder demonstrates a pooled multi-tenant agent runtime pattern using Cognito-style tenant claims and DynamoDB-style tenant configuration and tenant data. The purpose is to prove that tenant context is consumed by the Runtime orchestration layer after identity has already been verified.
+This folder models a pooled multi-tenant agent runtime pattern using Cognito-style tenant claims and DynamoDB-style tenant configuration and tenant data. The purpose is to show that tenant context is consumed by the Runtime orchestration layer after identity has already been verified.
 
-The demo does not prove identity. That is covered in `identity_trust/`. This demo proves what the verified tenant is allowed to do once Runtime trusts the caller context.
+Identity validation is covered in `identity_trust/`. This pattern focuses on what the verified tenant is allowed to do once Runtime trusts the caller context.
 
 ## Architecture Point
 
@@ -16,7 +16,7 @@ Cognito JWT claims -> tenant_id -> DynamoDB tenant configuration -> Runtime orch
 
 The tenant runtime profile includes the allowed tool catalog, memory namespace, rate-limit tier, outbound credential profile, and model profile. Tool handlers access only the DynamoDB-style user data partition for the verified tenant. The model can reason within tenant context, but it does not create, switch, or authorize tenant context.
 
-## Evidence
+## Boundary Evidence
 
 Run from the repository root:
 
@@ -32,7 +32,7 @@ tenant-b -> check_order -> allowed
 tenant-b -> create_refund -> denied
 ```
 
-The denied case is the important boundary evidence. Runtime rejects the tool request before MCP, Gateway, or downstream execution.
+The denied case is the important boundary evidence. Runtime rejects the tool request before MCP, Gateway, or downstream execution. The model can ask; Runtime decides.
 
 ## AgentCore Runtime with LLM
 
@@ -71,7 +71,7 @@ The Runtime logs include `multi_tenant_tool_decision` with tenant, subject, tool
 - `cognito_claims.py` simulates verified Cognito JWT claims containing `sub`, tenant claim, audience, issuer, and scope.
 - `dynamodb_tenant_store.py` simulates a DynamoDB tenant configuration table and tenant-partitioned user data.
 - `tenant_tool_policy.py` defines a tenant-to-tool authorization catalog.
-- `pooled_runtime_demo.py` simulates the Runtime orchestration decision after caller context has been verified.
+- `pooled_runtime_demo.py` models the Runtime orchestration decision after caller context has been verified.
 - `run_evidence.py` runs good and bad tenant/tool combinations.
 - `runtime_with_llm.py` runs the same policy after Bedrock Converse emits a `toolUse`.
 - `deploy_runtime.py` deploys the LLM-backed Runtime to AgentCore Runtime.

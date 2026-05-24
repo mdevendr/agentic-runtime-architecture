@@ -4,9 +4,9 @@ This pattern introduces Amazon Bedrock AgentCore Gateway as the platform-mediate
 
 Gateway is the policy enforcement point for tool exposure in this pattern. It owns the visible tool surface, target binding, credential mode, and invocation path between the agent runtime and downstream capabilities.
 
-Local MCP servers from Prompt 2 are **retained only for comparison** in `../agentcore_runtime_mcp_tools_boundary`. They are not used by this implementation.
+Local MCP servers from Stage 2 are **retained only for comparison** in `../agentcore_runtime_mcp_tools_boundary`. They are not used by this implementation.
 
-New/changed files in this Prompt 3 implementation (Two per-tool Gateway Lambda targets):
+Core files in this Stage 3 Gateway-mediated implementation:
 
 - `setup_gateway.py` - creates IAM roles, two Lambda targets (one per tool), AgentCore Gateway, and Gateway target attachments.
 - `lambda_calculate_order_total.py` - Lambda target that owns `calculate_order_total` execution.
@@ -17,17 +17,17 @@ New/changed files in this Prompt 3 implementation (Two per-tool Gateway Lambda t
 - `invoke_runtime.py` - validates Gateway `tools/list`, Gateway `tools/call`, and boundary evidence.
 - `requirements.txt` - runtime dependencies.
 
-Assumption marked for this step: the Gateway is created with `AWS_IAM` inbound authorization by default. The agent signs Gateway MCP requests with SigV4 using the AgentCore Runtime execution role. For development only, `AGENTCORE_GATEWAY_AUTHORIZER=NONE` can be used if the Gateway is created that way.
+Assumption for this pattern: the Gateway is created with `AWS_IAM` inbound authorization by default. The agent signs Gateway MCP requests with SigV4 using the AgentCore Runtime execution role. For development only, `AGENTCORE_GATEWAY_AUTHORIZER=NONE` can be used if the Gateway is created that way.
 
 ## Implementation
 
-Prompt 2 proved:
+Stage 2 proved:
 
 ```text
 Runtime -> Agent -> MCPClient -> stdio transport -> MCP Server -> Tool
 ```
 
-Prompt 3 proves (two per-tool Gateway Lambda targets):
+Stage 3 proves two per-tool Gateway Lambda targets:
 
 ```text
 Runtime -> Agent -> MCPClient -> AgentCore Gateway -> Lambda #1 (calculate_order_total)
@@ -67,7 +67,7 @@ Install local deployment dependencies:
 pip install boto3 uv
 ```
 
-Create Gateway, Lambda target, IAM roles, and target attachment:
+Create Gateway, Lambda targets, IAM roles, and target attachments:
 
 ```bash
 python setup_gateway.py
@@ -81,6 +81,8 @@ Gateway create response:
 Gateway status: CREATING
 Gateway status: READY
 Gateway target create response for calculate_order_total:
+...
+Gateway target create response for check_refund_eligibility:
 ...
 AGENTCORE_GATEWAY_ID=<gateway-id>
 AGENTCORE_GATEWAY_ARN=<gateway-arn>
@@ -114,24 +116,24 @@ export AGENT_RUNTIME_ARN="<agent-runtime-arn-from-deploy-output>"
 
 `setup_gateway.py` creates:
 
-- Lambda execution role: `AgentCoreGatewayOrderLambdaRole-<region>`
+- Lambda execution roles: `AgentCoreGatewayCalculateOrderTotalLambdaRole-<region>` and `AgentCoreGatewayCheckRefundEligibilityLambdaRole-<region>`
 - Gateway service role: `AgentCoreGatewayBoundaryRole-<region>`
-- Lambda function: `agentcore_gateway_order_tool`
+- Lambda functions: `agentcore_gateway_calculate_order_total` and `agentcore_gateway_check_refund_eligibility`
 - AgentCore Gateway: `gateway-tools-boundary`
-- Gateway Lambda target: `OrderLambdaTarget`
+- Gateway Lambda targets: `calculateordertotalTarget` and `checkrefundeligibilityTarget`
 
-The Lambda execution role allows CloudWatch Logs writes.
+The Lambda execution roles allow CloudWatch Logs writes.
 
 The Gateway service role allows:
 
 ```json
 {
   "Action": ["lambda:InvokeFunction"],
-  "Resource": "<lambda-target-arn>"
+  "Resource": ["<calculate-lambda-arn>", "<refund-lambda-arn>"]
 }
 ```
 
-The Lambda function resource policy allows the Gateway service role to call `lambda:InvokeFunction`.
+Each Lambda function resource policy allows the Gateway service role to call `lambda:InvokeFunction`.
 
 The agent runtime execution role created by `deploy_runtime.py` includes:
 
@@ -144,7 +146,7 @@ The agent runtime execution role created by `deploy_runtime.py` includes:
 
 When `AGENTCORE_GATEWAY_AUTHORIZER=AWS_IAM`, `deploy_runtime.py` now requires `AGENTCORE_GATEWAY_ARN` and the runtime role is limited to only that Gateway ARN.
 
-## Prompt 4: Identity and Trust Boundary
+## Stage 4: Identity and Trust Boundary
 
 This architecture now enforces a layered identity boundary across AgentCore Runtime, AgentCore Gateway, and Lambda targets:
 
@@ -203,13 +205,15 @@ AGENTCORE_GATEWAY_ID=<gateway-id>
 AGENTCORE_GATEWAY_URL=<gateway-url>
 ```
 
-### Target Is Attached
+### Targets Are Attached
 
 Required setup evidence:
 
 ```text
-AGENTCORE_GATEWAY_TARGET_ID=<target-id>
-AGENTCORE_GATEWAY_LAMBDA_ARN=<lambda-arn>
+AGENTCORE_GATEWAY_TARGET_ID_CALCULATEORDERTOTAL=<target-id-1>
+AGENTCORE_GATEWAY_TARGET_ID_CHECKREFUNDELIGIBILITY=<target-id-2>
+AGENTCORE_GATEWAY_LAMBDA_ARN_CALCULATE_ORDER_TOTAL=<lambda-arn-1>
+AGENTCORE_GATEWAY_LAMBDA_ARN_CHECK_REFUND_ELIGIBILITY=<lambda-arn-2>
 ```
 
 ### tools/list Works Through Gateway
@@ -223,7 +227,7 @@ Required runtime response evidence:
       "event": "tools/list",
       "status": "success",
       "gateway_url": "<gateway-url>",
-      "tools": ["OrderLambdaTarget___calculate_order_total"]
+      "tools": ["calculateordertotalTarget___calculate_order_total"]
     }
   ]
 }
@@ -241,7 +245,7 @@ Required runtime response evidence:
   "status": "success",
   "result": {
     "boundary": "agentcore_gateway",
-    "gateway_tool": "OrderLambdaTarget___calculate_order_total",
+    "gateway_tool": "calculateordertotalTarget___calculate_order_total",
     "gateway_is_error": false
   }
 }
@@ -267,15 +271,15 @@ Required AgentCore Runtime log evidence:
 
 ## Architecture
 
-### A. What Changes From Prompt 2
+### A. What Changes From Stage 2
 
-Prompt 2:
+Stage 2:
 
 ```text
 Runtime -> Agent -> MCPClient -> MCP Server -> Tool
 ```
 
-Prompt 3:
+Stage 3:
 
 ```text
 Runtime -> Agent -> MCPClient -> AgentCore Gateway -> Target service
@@ -285,13 +289,13 @@ The MCP-facing tool endpoint is now managed by AgentCore Gateway. The local MCP 
 
 ### B. Local MCP vs Platform-Mediated Boundary
 
-Prompt 2 local MCP:
+Stage 2 local MCP:
 
 - local MCP server owns tool exposure
 - local MCP server owns routing for its own process
 - local MCP server owns execution
 
-Prompt 3 Gateway:
+Stage 3 Gateway:
 
 - AgentCore Gateway owns MCP exposure and routing
 - Lambda target owns execution
@@ -301,7 +305,7 @@ Prompt 3 Gateway:
 
 The Gateway target schema is defined in `tool_schema.json` and attached with `create_gateway_target`.
 
-The target implementation lives in `lambda_order_tool.py`.
+The target implementations live in `lambda_calculate_order_total.py` and `lambda_check_refund_eligibility.py`.
 
 The agent and LLM see only the MCP tool schema exposed by AgentCore Gateway. Actual execution happens in Lambda.
 
@@ -363,7 +367,7 @@ Not yet proven:
 
 ## Validation Checklist
 
-- [ ] Prompt 2 MCP runtime remains available as comparison baseline.
+- [ ] Stage 2 MCP runtime remains available as comparison baseline.
 - [ ] `python setup_gateway.py` creates Gateway.
 - [ ] Setup output includes `AGENTCORE_GATEWAY_ID`.
 - [ ] Setup output includes `AGENTCORE_GATEWAY_URL`.

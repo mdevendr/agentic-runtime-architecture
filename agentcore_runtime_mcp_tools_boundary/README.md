@@ -4,16 +4,16 @@ This pattern hosts the agent inside Amazon Bedrock AgentCore Runtime while prese
 
 This implementation uses MCP `stdio` transport to prove the process boundary with a minimal deployable artifact. For distributed MCP execution, promote this boundary to Streamable HTTP carrying JSON-RPC messages, enforce JSON Schema at the transport edge, and propagate trace/correlation context through the Runtime, MCP client, MCP server, and downstream targets.
 
-Direct Tools are **retained only as a comparison baseline** in `../agentcore_runtime_direct_tools_baseline`. They are not used by this implementation.
+Direct tools are **retained only as a Stage 1 comparison baseline** in `../agentcore_runtime_direct_tools_baseline`. They are not used by this implementation.
 
-New/changed files in this Prompt 2 implementation:
+Core files in this Stage 2 hosted MCP implementation:
 
 - `main.py` - AgentCore Runtime entrypoint, two MCP client sessions, `tools/list`, ownership routing, `tools/call`, Bedrock Converse loop.
 - `mcp_order_server.py` - MCP stdio server that owns `calculate_order_total`.
 - `mcp_refund_server.py` - MCP stdio server that owns `check_refund_eligibility`.
 - `mcp_smoke_test.py` - local MCP-only test for two server startups, `tools/list`, success `tools/call`, and failure `tools/call`.
-- `deploy_runtime.py` - Prompt 1 deployment scaffold adapted to package the MCP runtime and server file.
-- `invoke_runtime.py` - Prompt 1 invocation scaffold adapted to validate MCP evidence.
+- `deploy_runtime.py` - deployment scaffold adapted to package the MCP runtime and server files.
+- `invoke_runtime.py` - invocation scaffold adapted to validate MCP boundary evidence.
 - `requirements.txt` - runtime dependencies including `mcp`.
 
 ## Implementation
@@ -298,21 +298,21 @@ Required evidence:
 
 ## Architecture
 
-### A. What Changes From Prompt 1
+### A. What Changes From Stage 1
 
-Prompt 1 proved:
+Stage 1 proved:
 
 ```text
 Runtime -> Agent -> Direct Tool
 ```
 
-Prompt 2 proves:
+Stage 2 proves:
 
 ```text
 Runtime -> Agent -> MCPClient -> stdio transport -> owning MCP Server -> Tool
 ```
 
-Prompt 1 tool schemas, validation, and handlers lived in the agent process. Prompt 2 moves tool schema publication, validation, and execution into the owning MCP server.
+Stage 1 tool schemas, validation, and handlers lived in the agent process. Stage 2 moves tool schema publication, validation, and execution into the owning MCP server.
 
 ### B. Agent vs MCP Server Separation
 
@@ -432,7 +432,7 @@ Not yet proven:
 
 ## Validation Checklist
 
-- [ ] Prompt 1 direct-tools runtime remains available as comparison baseline.
+- [ ] Stage 1 direct-tools runtime remains available as comparison baseline.
 - [ ] `python mcp_smoke_test.py` passes locally.
 - [ ] `python deploy_runtime.py` completes.
 - [ ] Runtime status is `READY`.

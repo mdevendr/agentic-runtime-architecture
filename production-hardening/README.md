@@ -13,6 +13,7 @@ This folder maps the article's production hardening guidance to concrete reposit
 | Static cached schema catalog | `schema_catalog/build_catalog.py` and `schema_catalog/catalog.example.json` | Compiles Gateway tool schemas into a versioned, hash-verified catalog. |
 | Identity substitution hardening | `identity_trust/caller_context_assertion.py` | Demonstrates a signed caller-context assertion for substitution modes. |
 | Runtime-side caller attribution | `identity_trust/caller_context_demo/` | Demonstrates both client-signed payload assertions and Gateway REQUEST-interceptor-signed header assertions while Runtime-facing identity is substituted. |
+| Security in depth | Stage folders plus `shared/` controls | Shows where identity, secrets, least privilege, schema validation, idempotency, and caller attribution attach across the agent path. |
 
 ## Baseline vs Hardened Patterns
 
@@ -33,6 +34,14 @@ The hardening helpers demonstrate production controls that are usually layered o
 - caller-context preservation when Gateway substitutes Runtime-facing identity
 
 These helpers are intentionally dependency-light. Production deployments should replace in-memory examples with managed stores such as DynamoDB conditional writes, Redis-style `SETNX`, centralized trace propagation, managed signing keys, and organization-specific policy enforcement.
+
+## Implementation Notes
+
+The circuit breaker is an application and orchestration responsibility in this repository. Runtime examples bound tool loops with `MAX_TOOL_ROUNDS`; `shared/circuit_breaker.py` models repeated-tool and error-class blocking before dispatch. In a full deployment, the same control can be enforced in Runtime, a Gateway interceptor or policy layer, an MCP server, or a dedicated orchestration policy component.
+
+Static schema catalogs are intended for the Runtime hot path to read from memory, not from a live `tools/list` call on every session. Source catalogs can be distributed through S3 immutable artifacts, AWS AppConfig for validated rollout and rollback, DynamoDB for tenant/runtime catalog version mapping, CI/CD publication, or Gateway registration metadata. Runtime should hydrate and refresh the catalog on controlled boundaries, then reason against the in-memory versioned contract set.
+
+Security in depth is broader than one component pair. For the article scope, it means securing the agent execution path: client to Runtime or Gateway, Gateway to Runtime, Runtime to model, Runtime to tools, tools to downstream services, secrets and signing keys, persisted session state, and logs/traces. Downstream tool APIs still need their own authentication, authorization, schema validation, transport security, tenant ownership checks, and idempotency enforcement.
 
 ## Examples
 

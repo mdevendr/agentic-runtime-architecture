@@ -34,7 +34,7 @@ Gateway is the front door in all four modes, but Runtime remains the target and 
 | `OAUTH` | Gateway-obtained OAuth/JWT token | Substitution |
 | `JWT_PASSTHROUGH` | Original caller bearer token | Propagation |
 
-Substitution modes are valid, but they can hide original caller context unless the architecture preserves it deliberately. When caller attribution, tenant policy, or business authorization must survive substitution, carry a signed caller-context assertion alongside the Runtime-facing identity.
+Substitution modes are valid, but they can hide original caller context unless the architecture preserves it deliberately. This is the confused deputy risk: Runtime authorizes a trusted Gateway or machine credential, while the business action may have been initiated by a different caller. When caller attribution, tenant policy, or business authorization must survive substitution, carry a signed caller-context assertion alongside the Runtime-facing identity.
 
 Evidence:
 
@@ -42,6 +42,8 @@ Evidence:
 - `../caller_context_demo/` - runnable demo where a Runtime-side `who_am_i` tool verifies caller context while Runtime-facing identity remains `GatewayServiceRole`.
   - Client-signed payload path: Runtime validates an assertion carried in the JSON payload.
   - Gateway-signed header path: Gateway REQUEST interceptor signs caller context, Gateway propagates `X-Amzn-Bedrock-AgentCore-Runtime-Custom-Caller-Context-Assertion`, and Runtime reads it through the request header allowlist.
+
+For production, prefer asymmetric caller-context signing: Gateway or a Gateway-adjacent interceptor holds the private signing key, while Runtime verifies with a public key or JWKS. The demo also includes symmetric HMAC signing for local evidence because it is simple to run.
 
 ## Current SDK/CLI Support Check
 

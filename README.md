@@ -2,7 +2,7 @@
 
 Architecture patterns for building secure, observable, and governed LLM agent runtimes.
 
-This repository contains proof-driven architecture patterns for LLM agents built around direct tools, MCP execution boundaries, Amazon Bedrock AgentCore Runtime, AgentCore Gateway, Runtime inbound identity, and production hardening controls.
+This repository contains architecture patterns for LLM agents built around direct tools, MCP execution boundaries, Amazon Bedrock AgentCore Runtime, AgentCore Gateway, Runtime inbound identity, Runtime outbound identity, multi-tenant orchestration, and production hardening controls.
 
 Most agent discussions start with tool calling: schemas, selection, invocation, and results. In production, the harder architectural question is where execution happens, whose identity is used, and which boundary is trusted when reasoning becomes action.
 
@@ -13,6 +13,7 @@ These examples are intentionally small, but each pattern proves a specific bound
 - how failures propagate across boundaries
 - how Runtime, Gateway, and target services divide responsibility
 - how inbound identity and trust are enforced for AgentCore Runtime
+- how tenant context, outbound credentials, and security-in-depth controls are applied after Runtime has accepted a request
 
 ## Author
 
@@ -38,11 +39,17 @@ Runtime owns orchestration. Gateway owns mediation and routing. Targets own exec
 Stage 4: Runtime identity and trust
 Runtime inbound authorization is tested directly and through Gateway-fronted Runtime modes.
 
+Stage 5: Runtime outbound identity
+Runtime uses its execution role and target-specific credentials for outbound AWS, API, database, and tool access. Inbound caller identity is not automatically propagated.
+
+Stage 6: Multi-tenant agent Runtime boundaries
+Verified tenant context controls the allowed tool catalog, memory namespace, model profile, outbound credential profile, and audit context before tool execution.
+
+Stage 7: Security in depth across agent boundaries
+Security is layered from client to Runtime, Gateway, tools, downstream services, stored state, secrets, certificates, and telemetry.
+
 Production hardening
 Adds evidence for resumable Runtime state, idempotency, schema catalogs, correlation, circuit breakers, and identity substitution hardening.
-
-Multi-tenant agents
-Adds evidence for pooled Runtime orchestration where verified tenant context controls the allowed tool catalog.
 ```
 
 ## Patterns
@@ -127,7 +134,45 @@ The target credential provider decides whose identity Runtime authorizes.
 
 Implementation and runbooks: [identity_trust](identity_trust)
 
-### 7. Production Hardening Evidence
+### 7. Runtime Outbound Identity
+
+Inbound identity decides who may invoke Runtime. Outbound identity decides what the running agent may access after invocation.
+
+Runtime behaves like other AWS compute boundaries: it uses its execution role for AWS service access and separately managed credentials for external APIs, databases, SaaS systems, or MCP targets. Caller identity is not automatically forwarded to those downstream systems unless the architecture explicitly propagates or exchanges it.
+
+Key rule:
+
+```text
+Client identity authorizes Runtime invocation.
+Runtime execution identity authorizes outbound actions.
+Target systems still enforce their own authorization.
+```
+
+Supporting code: [identity_trust](identity_trust), [production-hardening](production-hardening), and [multi_tenant_agents](multi_tenant_agents).
+
+### 8. Multi-Tenant Agent Runtime Boundaries
+
+A pooled Runtime can serve multiple tenants only if tenant context is verified before orchestration begins and then used to select allowed tools, memory scope, rate limits, outbound credentials, and audit context.
+
+Implementation: [multi_tenant_agents](multi_tenant_agents)
+
+Runtime authorizes tool use from verified tenant context, not from prompt text or model output:
+
+```text
+tenant-a -> create_refund -> allowed
+tenant-b -> check_order -> allowed
+tenant-b -> create_refund -> denied
+```
+
+### 9. Security In Depth Across Agent Boundaries
+
+Security in depth for agents is not a single control at Runtime or Gateway. It spans the path from client to Runtime, Runtime to model, Runtime to Gateway/MCP/tools, tools to downstream services, and state at rest.
+
+Controls include IAM/JWT validation, Gateway and Runtime authorization, signed caller-context assertions for substitution modes, least-privilege Runtime execution roles, managed secrets and certificates, TLS/private connectivity, target-side authorization, idempotency at mutation boundaries, encrypted session state, and redacted logs.
+
+Tool target security is a separate boundary: every target must authenticate its caller, authorize the operation, validate the schema, enforce tenant ownership, protect credentials, and secure transport.
+
+### 10. Production Hardening Evidence
 
 The baseline patterns are intentionally small. The hardening layer captures controls that enterprise agent runtimes typically need once tool execution crosses process, network, identity, and governance boundaries.
 
@@ -142,20 +187,6 @@ Key supporting modules:
 - [schema_catalog](schema_catalog) - static cached tool schema catalog builder and example.
 - [identity_trust/caller_context_assertion.py](identity_trust/caller_context_assertion.py) - signed caller-context assertion for substitution-mode hardening.
 - [identity_trust/caller_context_demo](identity_trust/caller_context_demo) - client-signed payload and Gateway-signed header evidence for preserving original caller context.
-
-### 8. Multi-Tenant Agent Runtime Evidence
-
-A pooled Runtime can serve multiple tenants only if tenant context is verified before orchestration begins and then used to select allowed tools, memory scope, rate limits, outbound credentials, and audit context.
-
-Evidence: [multi_tenant_agents](multi_tenant_agents)
-
-The demo proves that Runtime authorizes tool use from verified tenant context, not from prompt text or model output:
-
-```text
-tenant-a -> create_refund -> allowed
-tenant-b -> check_order -> allowed
-tenant-b -> create_refund -> denied
-```
 
 ## Repository Structure
 
@@ -224,8 +255,10 @@ MCP tooling                     Reasoning + orchestration             MCP server
 AgentCore Runtime + MCP         Hosted orchestration                  MCP server process/service
 AgentCore Gateway tooling       Hosted orchestration                  Gateway target service
 Runtime identity and trust      Final inbound authorization           Runtime auth boundary
-Production hardening            Resilience + governance controls      Cross-boundary evidence layer
+Runtime outbound identity       Outbound AWS/API/data access          Runtime execution role + target auth
 Multi-tenant agents             Tenant-aware orchestration            Runtime policy decision before tool execution
+Security in depth               Defense across the agent path         Client, Runtime, Gateway, targets, state
+Production hardening            Resilience + governance controls      Cross-boundary evidence layer
 ```
 
 ## Public Repository Hygiene

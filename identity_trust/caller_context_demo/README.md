@@ -24,6 +24,29 @@ This demo does not claim that AgentCore Gateway natively signs or injects caller
 
 AgentCore Gateway also supports REQUEST interceptor Lambdas and target header propagation. The deployed header path in this folder uses that mechanism: the Gateway invokes an interceptor Lambda, the interceptor signs caller context, Gateway forwards the assertion as `X-Amzn-Bedrock-AgentCore-Runtime-Custom-Caller-Context-Assertion`, and Runtime reads the header through `RequestContext`.
 
+## Signing Model
+
+Runtime verifies the caller-context assertion; it does not decrypt it. The assertion is signed caller metadata, not a bearer credential for Runtime authorization.
+
+This repository uses symmetric HMAC signing for simplicity:
+
+```text
+Gateway interceptor and Runtime share one HMAC secret.
+Interceptor signs caller context.
+Runtime verifies with the same secret.
+```
+
+A production design should prefer asymmetric signing:
+
+```text
+Gateway interceptor holds the private signing key.
+Runtime holds only the public verification key or JWKS.
+Gateway signs caller context.
+Runtime verifies signature, issuer, audience, expiry, subject, tenant, session, and correlation claims.
+```
+
+Private signing keys should be stored in a managed secret or key system such as AWS Secrets Manager, AWS KMS/HSM-backed signing, or an approved external vault. Runtime should not hold the private key in the asymmetric model.
+
 ## Local Smoke Test
 
 ```bash

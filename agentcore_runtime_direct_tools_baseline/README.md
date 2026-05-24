@@ -164,9 +164,9 @@ aws bedrock-agentcore invoke-agent-runtime \
 curl -X POST http://localhost:8080/invocations \
   -H "Content-Type: application/json" \
   -d '{"prompt":"Calculate the total for SKU-BOOK-001. Quantity is 3 and unit price is 12.50. Use the available tool.","tool_choice":"calculate_order_total"}'
-
-Note: externally the invocation surface is unchanged — callers still supply `tool_choice` or let the model select a tool. Internally the runtime now routes the selected tool to its dedicated gateway (logs will show `[GATEWAY:calculate_order_total]` or `[GATEWAY:check_refund_eligibility]`).
 ```
+
+Note: externally the invocation surface is unchanged. Callers still supply `tool_choice` or let the model select a tool. Internally the runtime routes the selected tool through an in-process dispatcher wrapper before the local Python handler runs. The `[GATEWAY:*]` log prefix in this sample is a local dispatcher label only; it is not AgentCore Gateway.
 
 ## Tests
 
@@ -424,7 +424,7 @@ Proven when the validation steps above are executed:
 - Tool result returns to the agent and then to the LLM.
 - Invalid tool input is rejected locally by Pydantic validation.
 
-Not proven in this Step 1 baseline:
+Not proven in this Stage 1 baseline:
 
 - MCP boundary.
 - Remote tool execution.
