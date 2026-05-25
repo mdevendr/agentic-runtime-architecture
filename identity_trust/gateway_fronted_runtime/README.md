@@ -14,6 +14,18 @@ Runtime -> MCP Client -> AgentCore Gateway -> Lambda/API tool target
 
 Do not reuse the MCP tools Gateway for these scenarios. A Gateway-fronted Runtime target uses a Gateway without MCP protocol configuration and points to a Runtime target.
 
+## Architecture Diagrams
+
+![Gateway-fronted Runtime IAM and SigV4](../../architecture/GatewayFrontedAgentCoreRuntime_IAM_SigV4.png)
+
+![Gateway-fronted Runtime OAuth and JWT](../../architecture/GatewayFrontedAgentCoreRuntime_JWT.png)
+
+![Gateway-fronted Runtime JWT passthrough](../../architecture/GatewayFrontedAgentCoreRuntime_JWT_Passthrough.png)
+
+When substitution modes are used, preserve original caller context deliberately:
+
+![Identity substitution and confused deputy hardening](../../architecture/IdentitySubstitutionAndConfusedDeputy.png)
+
 ## Authorization Modes
 
 | # | Scenario | Gateway inbound auth | Runtime target credential provider | Runtime authorizes |

@@ -9,6 +9,32 @@ Caller -> AgentCore Gateway -> AgentCore Runtime target
 
 The core architectural question is whose identity Runtime evaluates at the final authorization boundary.
 
+## Architecture Diagrams
+
+The original large identity diagram has been split so each trust path is readable in GitHub and Medium.
+
+Direct Runtime inbound identity:
+
+![Runtime inbound IAM and SigV4](../architecture/AgentCoreRuntimeIdentityTrustTooling_IAM_SigV4.png)
+
+![Runtime inbound Cognito OAuth](../architecture/AgentCoreRuntimeIdentityTrustTooling_Cognito_OAuth.png)
+
+![Runtime inbound Cognito and Google OIDC](../architecture/AgentCoreRuntimeIdentityTrustTooling_Cognito_Google_OIDC.png)
+
+![Runtime inbound external IdP](../architecture/AgentCoreRuntimeIdentityTrustTooling_ExternalIDP_Azure.png)
+
+Gateway-fronted Runtime identity:
+
+![Gateway-fronted Runtime IAM and SigV4](../architecture/GatewayFrontedAgentCoreRuntime_IAM_SigV4.png)
+
+![Gateway-fronted Runtime OAuth and JWT](../architecture/GatewayFrontedAgentCoreRuntime_JWT.png)
+
+![Gateway-fronted Runtime JWT passthrough](../architecture/GatewayFrontedAgentCoreRuntime_JWT_Passthrough.png)
+
+Identity substitution and confused deputy hardening:
+
+![Identity substitution and confused deputy](../architecture/IdentitySubstitutionAndConfusedDeputy.png)
+
 ## Implemented Scope
 
 | # | Scenario | Source boundary | Auth/identity | Status |

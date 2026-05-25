@@ -108,7 +108,13 @@ Implementation: [agentcore_runtime_gateway_tools_boundary](agentcore_runtime_gat
 
 Runtime inbound authorization is tested across IAM, workload identity, Cognito JWT, external JWT, private endpoint, and Gateway-fronted Runtime modes.
 
-![Runtime inbound identity and trust](architecture/AgentCoreRuntimeIdentityTrustTooling.png)
+![Runtime inbound IAM and SigV4 identity](architecture/AgentCoreRuntimeIdentityTrustTooling_IAM_SigV4.png)
+
+![Runtime inbound Cognito OAuth identity](architecture/AgentCoreRuntimeIdentityTrustTooling_Cognito_OAuth.png)
+
+![Runtime inbound Cognito and Google OIDC identity](architecture/AgentCoreRuntimeIdentityTrustTooling_Cognito_Google_OIDC.png)
+
+![Runtime inbound external IdP identity](architecture/AgentCoreRuntimeIdentityTrustTooling_ExternalIDP_Azure.png)
 
 Direct Runtime invocation proves the baseline inbound trust boundary:
 
@@ -122,7 +128,11 @@ Gateway-fronted Runtime proves the alternate front-door pattern:
 Caller -> AgentCore Gateway -> AgentCore Runtime target
 ```
 
-![Gateway-fronted Runtime](architecture/GatewayFrontedAgentCoreRuntime.png)
+![Gateway-fronted Runtime IAM and SigV4](architecture/GatewayFrontedAgentCoreRuntime_IAM_SigV4.png)
+
+![Gateway-fronted Runtime OAuth and JWT](architecture/GatewayFrontedAgentCoreRuntime_JWT.png)
+
+![Gateway-fronted Runtime JWT passthrough](architecture/GatewayFrontedAgentCoreRuntime_JWT_Passthrough.png)
 
 The key conclusion:
 
@@ -153,6 +163,8 @@ Supporting code: [identity_trust](identity_trust), [production-hardening](produc
 ### 8. Multi-Tenant Agent Runtime Boundaries
 
 A pooled Runtime can serve multiple tenants only if tenant context is verified before orchestration begins and then used to select allowed tools, memory scope, rate limits, outbound credentials, and audit context.
+
+![Multi-tenant agent Runtime boundary](architecture/MultiTenant.png)
 
 Implementation: [multi_tenant_agents](multi_tenant_agents)
 
@@ -197,9 +209,15 @@ architecture/
   MCPTooling.png
   AgentCoreMCPTooling.png
   AgentCoreGatewayTooling.png
-  AgentCoreRuntimeIdentityTrustTooling.png
-  GatewayFrontedAgentCoreRuntime.png
-  Prompt4IdentityTrustBoundary.drawio
+  AgentCoreRuntimeIdentityTrustTooling_IAM_SigV4.png
+  AgentCoreRuntimeIdentityTrustTooling_Cognito_OAuth.png
+  AgentCoreRuntimeIdentityTrustTooling_Cognito_Google_OIDC.png
+  AgentCoreRuntimeIdentityTrustTooling_ExternalIDP_Azure.png
+  GatewayFrontedAgentCoreRuntime_IAM_SigV4.png
+  GatewayFrontedAgentCoreRuntime_JWT.png
+  GatewayFrontedAgentCoreRuntime_JWT_Passthrough.png
+  IdentitySubstitutionAndConfusedDeputy.png
+  MultiTenant.png
 
 direct-tools-architecture/
 mcp-server-architecture/

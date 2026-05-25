@@ -2,6 +2,8 @@
 
 This demo evidences the article's identity-substitution hardening pattern locally and through a deployable AgentCore Runtime + Gateway path.
 
+![Identity substitution and confused deputy hardening](../../architecture/IdentitySubstitutionAndConfusedDeputy.png)
+
 It models a Gateway-fronted Runtime substitution mode where Runtime authorizes a Gateway-controlled identity, but the agent application still verifies who the request is being performed for.
 
 ```text

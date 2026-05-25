@@ -2,6 +2,8 @@
 
 This folder models a pooled multi-tenant agent runtime pattern using Cognito-style tenant claims and DynamoDB-style tenant configuration and tenant data. The purpose is to show that tenant context is consumed by the Runtime orchestration layer after identity has already been verified.
 
+![Multi-tenant agent Runtime boundary](../architecture/MultiTenant.png)
+
 Identity validation is covered in `identity_trust/`. This pattern focuses on what the verified tenant is allowed to do once Runtime trusts the caller context.
 
 ## Architecture Point
