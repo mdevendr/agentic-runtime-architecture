@@ -22,7 +22,7 @@ These examples are intentionally small, but each pattern proves a specific bound
 My work focuses on zero-trust data access patterns, serverless architecture, AI-driven architectures, predictable resilient systems, and regulated-industry workloads where correctness and clarity matter most.
 
 - LinkedIn: [mahesh-devendran](https://www.linkedin.com/in/mahesh-devendran-83a3b214/)
-- Medium: [@mahesh.devendran](https://medium.com/@mahesh.devendran)
+- Medium: [@mahesh.devendran](https://medium.com/@maheshdevendran)
 
 ## Architecture Progression
 
